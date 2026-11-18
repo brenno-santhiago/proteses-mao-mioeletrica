@@ -1,0 +1,157 @@
+
+#include <Arduino.h>
+#include <ESP32Servo.h>
+
+// --- Configurações de Hardware ---
+#define PINO_EMG 34
+#define PINO_LED 2
+
+// Três servomotores e seus respectivos pinos GPIO
+// Servo 1: polegar
+// Servo 2: indicador e médio
+// Servo 3: anelar e mínimo
+const int NUM_SERVOS = 3;
+const int pinosServos[NUM_SERVOS] = {18, 19, 21};
+
+Servo meusServos[NUM_SERVOS];
+
+// --- Configurações da Média Móvel (Filtro) ---
+const int TAMANHO_MEDIA = 15;
+int leiturasEMG[TAMANHO_MEDIA];
+int indiceLeitura = 0;
+long totalEMG = 0;
+int sinalSuavizado = 0;
+
+// --- Variáveis Globais de Calibração ---
+int emgRepouso = 0;
+int emgForcaMaxima = 1000;
+int anguloAberto = 0;
+int anguloFechado = 90;
+
+// =========================================================================
+// FUNÇÃO AUTO-TUNE (CALIBRAÇÃO AUTOMÁTICA)
+// =========================================================================
+void calibrarEMG() {
+    Serial.println("==================================================");
+    Serial.println("INICIANDO CALIBRACAO AUTOMATICA (AUTO-TUNE)");
+    Serial.println("O LED azul acendeu. Voce tem 5 segundos para:");
+    Serial.println("1. Relaxar o braco totalmente.");
+    Serial.println("2. Contrair com forca maxima.");
+    Serial.println("==================================================");
+
+    digitalWrite(PINO_LED, HIGH);
+
+    int valorMaxLido = 0;
+    int valorMinLido = 4095;
+
+    unsigned long tempoInicio = millis();
+
+    while (millis() - tempoInicio < 5000) {
+        int leituraBruta = analogRead(PINO_EMG);
+        int intensidade = abs(leituraBruta - 2048);
+
+        if (intensidade > valorMaxLido) {
+            valorMaxLido = intensidade;
+        }
+
+        if (intensidade < valorMinLido) {
+            valorMinLido = intensidade;
+        }
+
+        delay(5);
+    }
+
+    emgRepouso = valorMinLido + 20;
+    emgForcaMaxima = valorMaxLido - 20;
+
+    // Evita uma faixa de calibração inválida
+    if (emgForcaMaxima <= emgRepouso) {
+        emgForcaMaxima = emgRepouso + 10;
+    }
+
+    digitalWrite(PINO_LED, LOW);
+
+    Serial.println("Calibracao Finalizada!");
+
+    Serial.print("Novo Repouso: ");
+    Serial.println(emgRepouso);
+
+    Serial.print("Nova Forca Maxima: ");
+    Serial.println(emgForcaMaxima);
+
+    Serial.println("==================================================");
+}
+
+// =========================================================================
+// CONFIGURAÇÃO INICIAL
+// =========================================================================
+void setup() {
+    Serial.begin(115200);
+
+    pinMode(PINO_LED, OUTPUT);
+
+    // Inicializa o filtro
+    for (int i = 0; i < TAMANHO_MEDIA; i++) {
+        leiturasEMG[i] = 0;
+    }
+
+    // Configura os três servomotores
+    for (int i = 0; i < NUM_SERVOS; i++) {
+        meusServos[i].setPeriodHertz(50);
+        meusServos[i].attach(pinosServos[i], 500, 2400);
+        meusServos[i].write(anguloAberto);
+    }
+
+    // Executa a calibração antes do controle principal
+    calibrarEMG();
+}
+
+// =========================================================================
+// LOOP PRINCIPAL
+// =========================================================================
+void loop() {
+    // Leitura do sinal do MyoWare 2.0
+    int leituraBruta = analogRead(PINO_EMG);
+    int intensidadeOnda = abs(leituraBruta - 2048);
+
+    // Filtro de média móvel
+    totalEMG = totalEMG - leiturasEMG[indiceLeitura];
+
+    leiturasEMG[indiceLeitura] = intensidadeOnda;
+
+    totalEMG = totalEMG + leiturasEMG[indiceLeitura];
+
+    indiceLeitura++;
+
+    if (indiceLeitura >= TAMANHO_MEDIA) {
+        indiceLeitura = 0;
+    }
+
+    sinalSuavizado = totalEMG / TAMANHO_MEDIA;
+
+    // Mapeamento proporcional do sinal para o ângulo dos servos
+    int anguloDestino = map(
+        sinalSuavizado,
+        emgRepouso,
+        emgForcaMaxima,
+        anguloAberto,
+        anguloFechado
+    );
+
+    anguloDestino = constrain(
+        anguloDestino,
+        anguloAberto,
+        anguloFechado
+    );
+
+    // Envia o mesmo comando proporcional aos três servomotores
+    for (int i = 0; i < NUM_SERVOS; i++) {
+        meusServos[i].write(anguloDestino);
+    }
+
+    // Descomente para acompanhar os valores no Serial Plotter
+    // Serial.printf("Intensidade:%d,Angulo:%d\n",
+    //               sinalSuavizado, anguloDestino);
+
+    delay(10);
+}
