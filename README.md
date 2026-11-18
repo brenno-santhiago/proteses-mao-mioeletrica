@@ -120,8 +120,6 @@ Dica: a orientação da peça na mesa influencia a resistência entre camadas. I
    - Servo 3: anelar e mínimo
 6. Com os servos na posição de 0° (aberto), ajuste a tensão dos tendões para que a mão fique aberta, sem folga excessiva.
 
-**PREENCHER:** inclua fotos de cada etapa na pasta `imagens/` e referencie aqui.
-
 ## Passo 3: ligar a eletrônica
 
 **Resultado esperado:** ESP32, sensor e servos ligados, com alimentação separada para os servos.
@@ -150,11 +148,6 @@ Confirme as ligações com o seu hardware antes de ligar. O código lê o valor 
 4. Coloque **capacitores de desacoplamento** próximos à alimentação dos servos para reduzir quedas de tensão e ruído.
 5. Não faça a corrente dos servos passar pelo mesmo caminho de alimentação do sensor.
 
-**PREENCHER:** diagrama de ligação (Fritzing, KiCad ou desenho à mão fotografado) em `docs/diagrama-ligacao.png` e referencie aqui:
-
-```
-![Diagrama de ligação](docs/diagrama-ligacao.png)
-```
 
 ### Posicionamento dos eletrodos
 
@@ -188,8 +181,6 @@ O programa executa a calibração automática (Auto-Tune) assim que é ligado:
 
 Para ver o sinal em tempo real, descomente as linhas do `Serial.printf` no final do `loop()` e abra o *Serial Plotter* (*Ferramentas > Plotter Serial*).
 
-**PREENCHER:** inclua uma captura real do Serial Plotter em `imagens/` e referencie aqui.
-
 ## Parâmetros do código
 
 | Parâmetro | Valor |
@@ -214,13 +205,6 @@ Para ver o sinal em tempo real, descomente as linhas do `Serial.printf` no final
 | Mão fecha sem contração | Calibração feita com o sensor mal posicionado | Reposicione o sensor e refaça a calibração |
 | Mão não fecha por completo | Tendão frouxo ou calibração com contração fraca | Ajuste a tensão e repita a calibração com força máxima |
 
-## Licença
-
-**PREENCHER** (escolha e mantenha coerente com o arquivo `LICENSE`):
-
-- Código: MIT ou GPL.
-- Documentação: CC BY 4.0.
-- Arquivos 3D e projeto de hardware: a licença do projeto original, se forem derivados; caso sejam próprios, por exemplo CERN-OHL ou CC BY.
 
 ## Como citar
 
